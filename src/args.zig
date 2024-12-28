@@ -34,11 +34,8 @@ pub const Args = struct {
     }
 
     // Parse the flags passed into the program
-    pub fn parse(alloc: std.mem.Allocator) !Args {
+    pub fn parse(alloc: std.mem.Allocator, params: [][]const u8) !Args {
         var args = Args.init(null, null);
-
-        const params = try std.process.argsAlloc(alloc);
-        defer std.process.argsFree(alloc, params);
 
         for (0.., params) |i, arg| {
             // std.debug.print("[{d}] {s}\n", .{ i, arg });

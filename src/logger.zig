@@ -54,8 +54,9 @@ pub const Logger = struct {
     // Input: [n]      Hello, world! -> Output: [<base>] [n]      Hello, world!
     // Input  Hello, world!          -> Output: [<base>] Hello, world!
     // -------------------------------------------------------------------------
-    pub fn log(self: *Logger, message: []const u8) !void {
-        const writer = std.io.getStdOut().writer();
+    // Runs the logger with the provided message. The write can be
+    // anything but should be STDOUT in most cases.
+    pub fn log(self: *Logger, message: []const u8, writer: anytype) !void {
         if (std.mem.eql(u8, message[0..3], "[0]")) {
             writer.writeAll("[INFO] ") catch unreachable;
         } else if (std.mem.eql(u8, message[0..3], "[1]")) {
@@ -135,9 +136,9 @@ pub const Logger = struct {
             \\  loggie -l info -t
             \\  loggie -l 2 -t "YYYY/MM/DD hh:mm:ss"
             \\  loggie -h
-            \\  
         ,
             .{},
         ) catch unreachable;
+        writer.print("\n", .{}) catch unreachable;
     }
 };
