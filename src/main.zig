@@ -1,7 +1,7 @@
 const std = @import("std");
 const utils = @import("utils.zig");
 const Logger = @import("logger.zig").Logger;
-const Args = @import("args.zig").Args;
+const Args = @import("args.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -13,8 +13,20 @@ pub fn main() !void {
     const read = try stdin.readAllAlloc(allocator, 1024 * 4);
     defer allocator.free(read);
 
-    const args = try Args.parse(allocator);
+    const args = Args.Args.parse(allocator) catch |err| {
+        const writer = std.io.getStdErr().writer();
 
-    var log = Logger.init(allocator, args.level, args.time);
+        switch (err) {
+            Args.ParserError.MissingLevel => try writer.print("Level flag requires an argument. For help use '-h'.\n", .{}),
+            Args.ParserError.InvalidLevel => try writer.print("Invalid level argument. For help use '-h'.\n", .{}),
+            else => try writer.print("Error parsing arguments: {}\n", .{err}),
+        }
+
+        try writer.print("Error parsing arguments: {}\n", .{err});
+
+        return;
+    };
+
+    var log = Logger.init(allocator, args);
     try log.log(read);
 }
