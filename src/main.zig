@@ -27,6 +27,12 @@ pub fn main() !void {
         return;
     };
 
+    // If the help flag is provided, print the help
+    // menu and exit.
+    if (args.help) {
+        return Logger.write_help(std.io.getStdOut().writer());
+    }
+
     var log = Logger.init(allocator, args);
     try log.log(read);
 }

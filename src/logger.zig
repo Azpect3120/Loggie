@@ -57,13 +57,13 @@ pub const Logger = struct {
     pub fn log(self: *Logger, message: []const u8) !void {
         const writer = std.io.getStdOut().writer();
         if (std.mem.eql(u8, message[0..3], "[0]")) {
-            try writer.writeAll("[INFO] ");
+            writer.writeAll("[INFO] ") catch unreachable;
         } else if (std.mem.eql(u8, message[0..3], "[1]")) {
-            try writer.writeAll("[WARN] ");
+            writer.writeAll("[WARN] ") catch unreachable;
         } else if (std.mem.eql(u8, message[0..3], "[2]")) {
-            try writer.writeAll("[ERROR] ");
+            writer.writeAll("[ERROR] ") catch unreachable;
         } else if (std.mem.eql(u8, message[0..3], "[3]")) {
-            try writer.writeAll("[DEBUG] ");
+            writer.writeAll("[DEBUG] ") catch unreachable;
         } else {
             // Nothing was provided, use the base level
             switch (self.base) {
@@ -76,8 +76,8 @@ pub const Logger = struct {
             try self.write_time(writer);
 
             // Write message and append a newline character
-            try writer.writeAll(utils.trim(message));
-            try writer.writeByte('\n');
+            writer.writeAll(utils.trim(message)) catch unreachable;
+            writer.writeByte('\n') catch unreachable;
 
             return;
         }
@@ -85,12 +85,16 @@ pub const Logger = struct {
         try self.write_time(writer);
 
         // Write message and append a newline character
-        try writer.writeAll(utils.trim(message[3..]));
-        try writer.writeByte('\n');
+        writer.writeAll(utils.trim(message[3..])) catch unreachable;
+        writer.writeByte('\n') catch unreachable;
     }
 
     // Helper function to write the time to the log
     // Will only run when the `time` flag is set to true
+    // This function will only error out if the allocation
+    // fails in some way.
+    //
+    // The time is always printed in UTC time.
     fn write_time(self: *Logger, writer: anytype) !void {
         if (self.time) {
             // Default time is in the format of: YYYY-MM-DDThh:mm:ss
@@ -102,9 +106,38 @@ pub const Logger = struct {
             // still captured from the args.
             const time = try Time.DateTime.now().formatAlloc(self.allocator, "YYYY-MM-DDThh:mm:ss");
             defer self.allocator.free(time);
-            try writer.writeAll("[");
-            try writer.writeAll(time);
-            try writer.writeAll("] ");
+            writer.writeAll("[") catch unreachable;
+            writer.writeAll(time) catch unreachable;
+            writer.writeAll("] ") catch unreachable;
         }
+    }
+
+    // Write the help menu to the writer provided.
+    // This function will not error out as it is
+    // a very rare case where a stdout write fails.
+    pub fn write_help(writer: anytype) void {
+        writer.print(
+            \\Loggie - A simple, configurable logger written in Zig.
+            \\Usage:
+            \\  loggie [options]
+            \\
+            \\Options:
+            \\  -h                Show this help menu.
+            \\  -l <level>        Set the log level. Levels:
+            \\                        0: info
+            \\                        1: warn
+            \\                        2: error
+            \\                        3: debug
+            \\  -t [time_fmt]    Include the timestamp in log messages.
+            \\                        Optional: Specify a time format (default: "YYYY-MM-DDThh:mm:ss").
+            \\
+            \\Examples:
+            \\  loggie -l info -t
+            \\  loggie -l 2 -t "YYYY/MM/DD hh:mm:ss"
+            \\  loggie -h
+            \\  
+        ,
+            .{},
+        ) catch unreachable;
     }
 };
