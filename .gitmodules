@@ -1,0 +1,6 @@
+[submodule "src/libs/zig-extras"]
+	path = src/libs/zig-extras
+	url = https://github.com/nektro/zig-extras.git
+[submodule "src/libs/zig-time"]
+	path = src/libs/zig-time
+	url = https://github.com/nektro/zig-time.git
