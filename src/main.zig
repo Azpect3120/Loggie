@@ -8,11 +8,6 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var stdin = std.io.getStdIn().reader();
-
-    const read = try stdin.readAllAlloc(allocator, 1024 * 4);
-    defer allocator.free(read);
-
     // Get the arguments passed to the program
     const params = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, params);
@@ -37,6 +32,16 @@ pub fn main() !void {
     if (args.help) {
         return Logger.write_help(std.io.getStdOut().writer());
     }
+
+    // Read this after the help flag is checked to save time.
+    const stdin = std.io.getStdIn();
+
+    // Check if no value was passed into the stdin stream.
+    if (stdin.isTty()) {
+        return;
+    }
+    const read = try stdin.reader().readAllAlloc(allocator, 1024 * 4);
+    defer allocator.free(read);
 
     var log = Logger.init(allocator, args);
     try log.log(read, std.io.getStdOut().writer());
