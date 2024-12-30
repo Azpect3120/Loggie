@@ -1,9 +1,15 @@
 const std = @import("std");
+const Target = std.Target;
+const Cpu = Target.Cpu;
+const Arch = Cpu.Arch;
+const Os = Target.Os;
+const Abi = Target.Abi;
+const CrossTarget = std.zig.CrossTarget;
 
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
 // runner.
-pub fn build(b: *std.Build) void {
+pub fn build_default(b: *std.Build) void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -88,4 +94,87 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     // test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
+}
+
+// Linux Targets
+const LINUX_X86: CrossTarget = CrossTarget{
+    .cpu_arch = .x86,
+    .os_tag = .linux,
+};
+const LINUX_X86_64: CrossTarget = CrossTarget{
+    .cpu_arch = .x86_64,
+    .os_tag = .linux,
+};
+const LINUX_ARM: CrossTarget = CrossTarget{
+    .cpu_arch = .arm,
+    .os_tag = .linux,
+};
+const LINUX_AARCH64: CrossTarget = CrossTarget{
+    .cpu_arch = .aarch64,
+    .os_tag = .linux,
+};
+
+// macOS Targets
+const MAC_X86_64: CrossTarget = CrossTarget{
+    .cpu_arch = .x86_64,
+    .os_tag = .macos,
+};
+const MAC_AARCH64: CrossTarget = CrossTarget{
+    .cpu_arch = .aarch64,
+    .os_tag = .macos,
+};
+
+// Windows Targets
+const WINDOWS_X86: CrossTarget = CrossTarget{
+    .cpu_arch = .x86,
+    .os_tag = .windows,
+};
+const WINDOWS_X86_64: CrossTarget = CrossTarget{
+    .cpu_arch = .x86_64,
+    .os_tag = .windows,
+};
+const WINDOWS_AARCH64: CrossTarget = CrossTarget{
+    .cpu_arch = .aarch64,
+    .os_tag = .windows,
+};
+
+const targets: [9]CrossTarget = [9]CrossTarget{
+    LINUX_X86,
+    LINUX_X86_64,
+    LINUX_ARM,
+    LINUX_AARCH64,
+    MAC_X86_64,
+    MAC_AARCH64,
+    WINDOWS_X86,
+    WINDOWS_X86_64,
+    WINDOWS_AARCH64,
+};
+
+pub fn build(b: *std.Build) !void {
+    // Run a build step for each target
+    for (targets) |target| {
+        const exe_safe = b.addExecutable(.{ .name = "Loggie_Safe", .root_source_file = b.path("src/main.zig"), .target = b.resolveTargetQuery(target), .optimize = .ReleaseSafe });
+        const exe_fast = b.addExecutable(.{ .name = "Loggie_Fast", .root_source_file = b.path("src/main.zig"), .target = b.resolveTargetQuery(target), .optimize = .ReleaseFast });
+        const exe_small = b.addExecutable(.{ .name = "Loggie_Small", .root_source_file = b.path("src/main.zig"), .target = b.resolveTargetQuery(target), .optimize = .ReleaseSmall });
+
+        const target_output_safe = b.addInstallArtifact(exe_safe, .{ .dest_dir = .{
+            .override = .{
+                .custom = try target.zigTriple(b.allocator),
+            },
+        } });
+        const target_output_fast = b.addInstallArtifact(exe_fast, .{ .dest_dir = .{
+            .override = .{
+                .custom = try target.zigTriple(b.allocator),
+            },
+        } });
+        const target_output_small = b.addInstallArtifact(exe_small, .{ .dest_dir = .{
+            .override = .{
+                .custom = try target.zigTriple(b.allocator),
+            },
+        } });
+
+        b.getInstallStep().dependOn(&target_output_safe.step);
+        b.getInstallStep().dependOn(&target_output_fast.step);
+        b.getInstallStep().dependOn(&target_output_small.step);
+    }
 }
